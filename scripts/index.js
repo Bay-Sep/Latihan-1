@@ -28,6 +28,8 @@ function buildCard({
   const card = document.createElement("div");
   card.className = "card h-100 shadow";
   card.style.cursor = "pointer";
+  card.style.marginLeft = "20px";
+  card.style.marginRight = "20px";
 
   // Image
   const img = document.createElement("img");
@@ -101,26 +103,57 @@ function buildCard({
     window.location.href = "description.html";
   });
 
+  // ID For Projects to  deleted
+  let pendingDeleteId = null;
+  let pendingDeleteCard = null;
+
+  // Delete Button
   deleteBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    col.remove();
-    let projects = JSON.parse(localStorage.getItem("projects")) || [];
-    projects = projects.filter((p) => p.id !== id);
-    localStorage.setItem("projects", JSON.stringify(projects));
 
-    if (projects.length === 0) {
-      projectsContainer.innerHTML =
-        "<p class='text-center text-muted'>No projects yet. Add one above!</p>";
+    // Simpan ID dan element card yang mau dihapus
+    pendingDeleteId = id;
+    pendingDeleteCard = col;
+
+    // Tampilkan modal
+    const modal = new bootstrap.Modal(
+      document.getElementById("confirmDeleteModal")
+    );
+    modal.show();
+  });
+
+  document.getElementById("confirmDeleteBtn").addEventListener("click", () => {
+    if (pendingDeleteId !== null) {
+      // Hapus dari localStorage
+      let projects = JSON.parse(localStorage.getItem("projects")) || [];
+      projects = projects.filter((p) => p.id !== pendingDeleteId);
+      localStorage.setItem("projects", JSON.stringify(projects));
+
+      // Hapus card dari tampilan
+      if (pendingDeleteCard) {
+        pendingDeleteCard.remove();
+      }
+
+      // Reset
+      pendingDeleteId = null;
+      pendingDeleteCard = null;
+
+      // Tutup modal
+      const modalElement = document.getElementById("confirmDeleteModal");
+      const modalInstance = bootstrap.Modal.getInstance(modalElement);
+      modalInstance.hide();
+
+      // OPTIONAL: alert Bootstrap
+      showBootstrapAlert("Project berhasil dihapus!", "warning");
     }
   });
 
+  // Edit Button
   editBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    document.getElementById("projectName").value = formprojectName;
-    document.getElementById("startDate").value = formstartDate;
-    document.getElementById("endDate").value = formendDate;
-    document.getElementById("descriptionText").value = formdescriptionText;
-    // TODO: set checkboxes based on technologies string/array
+
+    localStorage.setItem("editId", id);
+    window.location.href = "edit.html";
   });
 }
 
@@ -211,7 +244,7 @@ window.addEventListener("DOMContentLoaded", () => {
     projectsContainer.innerHTML =
       "<p class='text-center text-muted'>No projects yet. Add one above!</p>";
   } else {
-    projects.forEach((proj) => {
+    projects.map((proj) =>
       buildCard({
         id: proj.id,
         imageSrc: proj.imageBase64 || "",
@@ -222,7 +255,7 @@ window.addEventListener("DOMContentLoaded", () => {
         technologies: Array.isArray(proj.tech)
           ? proj.tech.join(", ")
           : proj.tech || "",
-      });
-    });
+      })
+    );
   }
 });
